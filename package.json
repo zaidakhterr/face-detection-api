@@ -9,12 +9,23 @@
   "author": "zaidakhterr",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^3.0.6",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "config": "^3.2.4",
     "express": "^4.17.1",
-    "mongoose": "^5.7.6"
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.7.11"
   },
   "devDependencies": {
     "nodemon": "^1.19.4"
+  },
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "env": {
+      "es6": true,
+      "commonjs": true,
+      "browser": true,
+      "node": true
+    }
   }
 }

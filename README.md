@@ -4,10 +4,9 @@ Backend for the face detection app. Uses Node, Express, MongoDB, Mongoose, JWT a
 
 To use create a file default.json in a folder named config. Add your MONGO_URI and JWT_SECRET there like this:
 
-```
+```json
 {
   "MONGO_URI": "<Mongo URI here>",
   "JWT_SECRET": "<JWT Secret here>"
 }
-
 ```
