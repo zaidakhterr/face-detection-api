@@ -5,7 +5,10 @@ const config = require('config');
 
 const router = express.Router();
 
-//User Model
+// auth middleware
+const auth = require('../middleware/auth');
+
+// User Model
 const User = require('../models/user');
 
 // @route   POST /users/register
@@ -14,7 +17,7 @@ const User = require('../models/user');
 router.post('/register', (req, res) => {
   const { name, email, password } = req.body;
 
-  //Validation
+  // Validation
   /*Check All Fields */
   if (!name || !email || !password) {
     return res.status(400).json({ msg: 'Please enter all fields' });
@@ -25,7 +28,7 @@ router.post('/register', (req, res) => {
     return res.status(400).json({ msg: 'Password must contain a number' });
   }
 
-  //Check for existing user
+  // Check for existing user
   User.findOne({ email }).then(user => {
     if (user)
       return res
@@ -34,20 +37,21 @@ router.post('/register', (req, res) => {
 
     const newUser = new User({ name, email, password });
 
-    //Create Salt & Hash
+    // Create Salt & Hash
     bcrypt.genSalt(10, (err, salt) => {
       if (err) throw err;
 
       bcrypt.hash(newUser.password, salt, (err, hash) => {
         if (err) throw err;
 
-        //Save user to DB
+        // Save user to DB
         newUser.password = hash;
         newUser
           .save()
-          .then(({ name, email, id }) => {
+          .then(user => {
+            // Send response with token
             jwt.sign(
-              { id },
+              { id: user.id },
               config.get('JWT_SECRET'),
               { expiresIn: 3600 },
               (err, token) => {
@@ -56,9 +60,9 @@ router.post('/register', (req, res) => {
                 res.json({
                   token,
                   user: {
-                    name,
-                    email,
-                    id,
+                    name: user.name,
+                    email: user.email,
+                    id: user.id,
                   },
                 });
               }
@@ -72,6 +76,68 @@ router.post('/register', (req, res) => {
 
 // @route   POST /users/signin
 // @desc    Signin existing User
+// @access  Public
+router.post('/signin', (req, res) => {
+  const { email, password } = req.body;
+
+  // Validation
+  /*Check All Fields */
+  if (!email || !password) {
+    return res.status(400).json({ msg: 'Please enter all fields' });
+  }
+
+  // Check for existing user
+  User.findOne({ email }).then(user => {
+    if (!user) return res.status(400).json({ msg: 'User does not exists.' });
+
+    // Validate password
+    bcrypt.compare(password, user.password).then(isMatch => {
+      if (!isMatch) {
+        return res.status(400).json({ msg: 'Invalid credentials' });
+      }
+
+      // Send response with token
+      jwt.sign(
+        { id: user.id },
+        config.get('JWT_SECRET'),
+        { expiresIn: 3600 },
+        (err, token) => {
+          if (err) throw err;
+
+          res.json({
+            token,
+            user: {
+              name: user.name,
+              email: user.email,
+              id: user.id,
+            },
+          });
+        }
+      );
+    });
+  });
+});
+
+// @route   GET /users/profile
+// @desc    Get User data
 // @access  Private
+router.get('/profile', auth, (req, res) => {
+  const { id } = req.user;
+  User.findById(id)
+    .select('-password')
+    .then(user => res.json(user))
+    .catch(err => console.error(err));
+});
+
+// @route   PATCH /users/profile
+// @desc    Increment entries
+// @access  Private
+router.patch('/profile', auth, (req, res) => {
+  const { id } = req.user;
+  User.findByIdAndUpdate(id, { $inc: { entries: 1 } })
+    .select('-password')
+    .then(user => res.send(user))
+    .catch(err => console.error(err));
+});
 
 module.exports = router;
